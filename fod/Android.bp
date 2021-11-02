@@ -16,9 +16,9 @@
 cc_binary {
     relative_install_path: "hw",
     defaults: ["hidl_defaults"],
-    name: "vendor.lineage.biometrics.fingerprint.inscreen@1.0-service.jd20",
-    vintf_fragments: ["vendor.lineage.biometrics.fingerprint.inscreen@1.0-service.jd20.xml"],
-    init_rc: ["vendor.lineage.biometrics.fingerprint.inscreen@1.0-service.jd20.rc"],
+    name: "vendor.lineage.biometrics.fingerprint.inscreen@1.1-service.jd20",
+    vintf_fragments: ["vendor.lineage.biometrics.fingerprint.inscreen@1.1-service.jd20.xml"],
+    init_rc: ["vendor.lineage.biometrics.fingerprint.inscreen@1.1-service.jd20.rc"],
     srcs: [
 	"service.cpp",
         "FingerprintInscreen.cpp",
@@ -30,7 +30,7 @@ cc_binary {
         "libhidlbase",
         "liblog",
         "libutils",
-        "vendor.lineage.biometrics.fingerprint.inscreen@1.0",
+        "vendor.lineage.biometrics.fingerprint.inscreen@1.1",
         "vendor.goodix.extend.service@2.0",
     ],
 }

@@ -37,17 +37,77 @@
 #define FOD_SENSOR_Y 1916
 #define FOD_SENSOR_SIZE 178
 
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 namespace {
 
 } // anonymous namespace
 
-namespace vendor {
-namespace lineage {
-namespace biometrics {
-namespace fingerprint {
-namespace inscreen {
-namespace V1_0 {
-namespace implementation {
+namespace vendor::lineage::biometrics::fingerprint::inscreen::implementation {
+
+struct ba {
+	uint32_t brightness;
+	uint32_t alpha;
+};
+
+struct ba brightness_alpha_lut[] = {
+	{0, 0xff},
+	{1, 0xee},
+	{2, 0xe8},
+	{3, 0xe6},
+	{4, 0xe5},
+	{6, 0xe4},
+	{10, 0xe0},
+	{20, 0xd5},
+	{30, 0xce},
+	{45, 0xc6},
+	{70, 0xb7},
+	{100, 0xad},
+	{150, 0xa0},
+	{227, 0x8a},
+	{300, 0x80},
+	{400, 0x6e},
+	{500, 0x5b},
+	{600, 0x50},
+	{800, 0x38},
+	{1023, 0x18},
+};
+static int interpolate(int x, int xa, int xb, int ya, int yb)
+{
+	int bf, factor, plus;
+	int sub = 0;
+
+	bf = 2 * (yb - ya) * (x - xa) / (xb - xa);
+	factor = bf / 2;
+	plus = bf % 2;
+	if ((xa - xb) && (yb - ya))
+		sub = 2 * (x - xa) * (x - xb) / (yb - ya) / (xa - xb);
+
+	return ya + factor + plus + sub;
+}
+
+int bl_to_alpha(int brightness)
+{
+	int level = ARRAY_SIZE(brightness_alpha_lut);
+	int i = 0;
+	int alpha;
+
+	for (i = 0; i < ARRAY_SIZE(brightness_alpha_lut); i++){
+		if (brightness_alpha_lut[i].brightness >= brightness)
+			break;
+	}
+
+	if (i == 0)
+		alpha = brightness_alpha_lut[0].alpha;
+	else if (i == level)
+		alpha = brightness_alpha_lut[level - 1].alpha;
+	else
+		alpha = interpolate(brightness,
+			brightness_alpha_lut[i-1].brightness,
+			brightness_alpha_lut[i].brightness,
+			brightness_alpha_lut[i-1].alpha,
+			brightness_alpha_lut[i].alpha);
+	return alpha;
+}
 
 /*
  * Write value to path and close file.
@@ -73,7 +133,10 @@ FingerprintInscreen::FingerprintInscreen() {
     this->mFodCircleVisible = false;
 	this->mFingerPressed = false;
     this->mVendorFpService = IGoodixFPExtendService::getService();
+    this->mIsInKeyguard = false;
 }
+
+// Methods from ::vendor::lineage::biometrics::fingerprint::inscreen::V1_0::IFingerprintInscreen follow.
 
 Return<int32_t> FingerprintInscreen::getPositionX() {
     return FOD_SENSOR_X;
@@ -93,19 +156,16 @@ Return<void> FingerprintInscreen::onStartEnroll() {
 }
 
 Return<void> FingerprintInscreen::onFinishEnroll() {
-    set(HBM_ENABLE_PATH, 0);
     return Void();
 }
 
 Return<void> FingerprintInscreen::onPress() {
     this->mVendorFpService->goodixExtendCommand(CMD_FINGERPRINT_EVENT, 1);
-    set(HBM_ENABLE_PATH, 1);
     return Void();
 }
 
 Return<void> FingerprintInscreen::onRelease() {
     this->mVendorFpService->goodixExtendCommand(CMD_FINGERPRINT_EVENT, 0);
-    set(HBM_ENABLE_PATH, 0);
     return Void();
 }
 
@@ -132,23 +192,25 @@ Return<void> FingerprintInscreen::setLongPressEnabled(bool) {
 }
 
 Return<int32_t> FingerprintInscreen::getDimAmount(int32_t brightness) {
-    float alpha;
-    int realBrightness = brightness * 2047 / 255;
-
-    if (realBrightness > 500) {
-        alpha = 1.0 - pow(realBrightness / 2047.0 * 430.0 / 600.0, 0.455);
-    } else {
-        alpha = 1.0 - pow(realBrightness / 1680.0, 0.455);
-    }
-
-    return 255 * alpha;
+//    float alpha;
+//    int realBrightness = brightness * 2047 / 255;
+//
+//    if (realBrightness > 500) {
+//        alpha = 1.0 - pow(realBrightness / 2047.0 * 430.0 / 600.0, 0.455);
+//    } else {
+//        alpha = 1.0 - pow(realBrightness / 1680.0, 0.455);
+//    }
+//
+//    return 255 * alpha;
+    LOG(ERROR) << "getDimAmount: brightness " << brightness << ", dimAmount: " << bl_to_alpha(brightness * 1023 / 255) << "\n";
+    return bl_to_alpha(brightness * 1023 / 255);
 }
 
 Return<bool> FingerprintInscreen::shouldBoostBrightness() {
     return false;
 }
 
-Return<void> FingerprintInscreen::setCallback(const sp<IFingerprintInscreenCallback>& callback) {
+Return<void> FingerprintInscreen::setCallback(const sp<V1_0::IFingerprintInscreenCallback>& callback) {
     {
         std::lock_guard<std::mutex> _lock(mCallbackLock);
         mCallback = callback;
@@ -157,10 +219,36 @@ Return<void> FingerprintInscreen::setCallback(const sp<IFingerprintInscreenCallb
     return Void();
 }
 
-}  // namespace implementation
-}  // namespace V1_0
-}  // namespace inscreen
-}  // namespace fingerprint
-}  // namespace biometrics
-}  // namespace lineage
-}  // namespace vendor
+
+// Methods from ::vendor::lineage::biometrics::fingerprint::inscreen::V1_1::IFingerprintInscreen follow.
+Return<int32_t> FingerprintInscreen::getHbmOffDelay() {
+    // TODO implement
+    return 0;
+}
+
+Return<int32_t> FingerprintInscreen::getHbmOnDelay() {
+    // TODO implement
+    return 0;
+}
+
+Return<bool> FingerprintInscreen::supportsAlwaysOnHBM() {
+    return true;
+}
+
+Return<void> FingerprintInscreen::switchHbm(bool enabled) {
+    set(HBM_ENABLE_PATH, enabled ? 1 : 0);
+
+    if (enabled) {
+        usleep(20 * 1000);
+    }
+    
+    return Void();
+}
+
+Return<void> FingerprintInscreen::setIsInKeyguard(bool isKeyguard) {
+
+    mIsInKeyguard = isKeyguard;
+    return Void();
+}
+
+}  // namespace vendor::lineage::biometrics::fingerprint::inscreen::implementation

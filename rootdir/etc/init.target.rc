@@ -96,7 +96,6 @@ on post-fs-data
 
     mkdir /data/vendor/thermal 0771 root system
     mkdir /data/vendor/thermal/config 0771 root system
-    chown system system /mnt/vendor/persist/display
     #LENOVO_CUSTOM add for westalgo begin
     mkdir /data/vendor/camera/westalgo 0770 camera camera
     #copy west algo
@@ -139,12 +138,6 @@ on boot
     setprop vendor.usb.qdss.inst.name "qdss"
     setprop sys.usb.configfs 1
 
-    #Set the default voltage to 5v
-    setprop persist.vendor.cp.taper_term_mv 6500
-
-    setprop persist.vendor.qg_cold_temp -150
-    setprop persist.vendor.qg_coff_gain 1
-    setprop persist.vendor.qg_cld_coff_gain 1.5
 
 #pd-mapper
 service vendor.pd_mapper /vendor/bin/pd-mapper

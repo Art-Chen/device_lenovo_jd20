@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef VENDOR_LINEAGE_BIOMETRICS_FINGERPRINT_INSCREEN_V1_0_FINGERPRINTINSCREEN_H
-#define VENDOR_LINEAGE_BIOMETRICS_FINGERPRINT_INSCREEN_V1_0_FINGERPRINTINSCREEN_H
+#pragma once
 
-#include <vendor/lineage/biometrics/fingerprint/inscreen/1.0/IFingerprintInscreen.h>
+#include <vendor/lineage/biometrics/fingerprint/inscreen/1.1/IFingerprintInscreen.h>
 #include <vendor/goodix/extend/service/2.0/IGoodixFPExtendService.h>
+#include <hidl/MQDescriptor.h>
+#include <hidl/Status.h>
 
-namespace vendor {
-namespace lineage {
-namespace biometrics {
-namespace fingerprint {
-namespace inscreen {
-namespace V1_0 {
-namespace implementation {
 
-using ::android::sp;
+namespace vendor::lineage::biometrics::fingerprint::inscreen::implementation {
+
+using ::android::hardware::hidl_array;
+using ::android::hardware::hidl_memory;
+using ::android::hardware::hidl_string;
+using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
+using ::android::sp;
+
 using ::vendor::goodix::extend::service::V2_0::IGoodixFPExtendService;
 
-class FingerprintInscreen : public IFingerprintInscreen {
-public:
+struct FingerprintInscreen : public V1_1::IFingerprintInscreen {
     FingerprintInscreen();
     Return<int32_t> getPositionX() override;
     Return<int32_t> getPositionY() override;
@@ -50,23 +50,21 @@ public:
     Return<void> setLongPressEnabled(bool enabled) override;
     Return<int32_t> getDimAmount(int32_t brightness) override;
     Return<bool> shouldBoostBrightness() override;
-    Return<void> setCallback(const sp<IFingerprintInscreenCallback>& callback) override;
+    Return<void> setCallback(const sp<::vendor::lineage::biometrics::fingerprint::inscreen::V1_0::IFingerprintInscreenCallback>& callback) override;
+	
+    Return<int32_t> getHbmOffDelay() override;
+    Return<int32_t> getHbmOnDelay() override;
+    Return<bool> supportsAlwaysOnHBM() override;
+    Return<void> switchHbm(bool enabled) override;
+    Return<void> setIsInKeyguard(bool enabled) override;
 
-private:
     bool mFodCircleVisible;
     sp<IGoodixFPExtendService> mVendorFpService;
 
     std::mutex mCallbackLock;
-    sp<IFingerprintInscreenCallback> mCallback;
+    sp<V1_0::IFingerprintInscreenCallback> mCallback;
     bool mFingerPressed;
+    bool mIsInKeyguard;
 };
 
-}  // namespace implementation
-}  // namespace V1_0
-}  // namespace inscreen
-}  // namespace fingerprint
-}  // namespace biometrics
-}  // namespace lineage
-}  // namespace vendor
-
-#endif  // VENDOR_LINEAGE_BIOMETRICS_FINGERPRINT_INSCREEN_V1_0_FINGERPRINTINSCREEN_H
+}  // namespace vendor::lineage::biometrics::fingerprint::inscreen::implementation
